@@ -42,6 +42,18 @@ go build -o ..\..\build\linux\dumpsmc
 del /q rsrc_windows_amd64.syso
 popd
 
+pushd .\commands\unlock
+echo Building unlock
+go-winres make --arch amd64 --product-version %1 --file-version %1
+set GOOS=windows
+set GOARCH=amd64
+go build -o ..\..\dist\windows\unlock.exe
+set GOOS=linux
+set GOARCH=amd64
+go build -o ..\..\dist\linux\unlock
+del /q rsrc_windows_amd64.syso
+popd
+
 pushd .\commands\hostcaps
 echo Building hostcaps
 go-winres make --arch amd64 --product-version %1 --file-version %1

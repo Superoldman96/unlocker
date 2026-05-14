@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"golang.org/x/sys/windows"
@@ -73,14 +72,29 @@ func VMWInfo() *VMwareInfo {
 	v.StartD = "VmwareAutostartService"
 
 	// Access registry for version, build and installation path
-	var access uint32
-	access = registry.QUERY_VALUE
-	if runtime.GOARCH == "amd64" {
-		access = access | registry.WOW64_32KEY
+	var regKey registry.Key
+	var err error
+	var found bool
+
+	keysToTry := []struct {
+		path   string
+		access uint32
+	}{
+		{`SOFTWARE\VMware, Inc.\VMware Workstation`, registry.QUERY_VALUE | registry.WOW64_64KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Player`, registry.QUERY_VALUE | registry.WOW64_64KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Workstation`, registry.QUERY_VALUE | registry.WOW64_32KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Player`, registry.QUERY_VALUE | registry.WOW64_32KEY},
 	}
-	regKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
-		`SOFTWARE\VMware, Inc.\VMware Player`, access)
-	if err != nil {
+
+	for _, k := range keysToTry {
+		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE, k.path, k.access)
+		if err == nil {
+			found = true
+			break
+		}
+	}
+
+	if !found {
 		fmt.Println("Failed to open VMware registry key")
 		return v
 	}
@@ -95,8 +109,8 @@ func VMWInfo() *VMwareInfo {
 
 	v.BuildNumber, _, err = regKey.GetStringValue("BuildNumber")
 	if err != nil {
-		fmt.Println("Failed to locate registry key BuildNumber")
-		return v
+		// Newer versions (e.g. Workstation 17.5+) may not have BuildNumber, fallback to ProductVersion
+		v.BuildNumber = v.ProductVersion
 	}
 
 	v.InstallDir, _, err = regKey.GetStringValue("InstallPath")
