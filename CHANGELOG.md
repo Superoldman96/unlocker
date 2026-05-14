@@ -2,6 +2,9 @@
 
 All dates are UK DD/MM/YY format.
 
+## 14/05/26
+* Fix change in registry settings in 25H2+ (Thanks to sonyps5201314 for PR)
+
 ## 01/11/23 4.2.7
 ## IMPORTANT: Security Update
 Please redownload the unlocker as VMware have
